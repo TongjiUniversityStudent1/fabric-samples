@@ -37,6 +37,7 @@ services:
     command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
     volumes:
       - ./channel/crypto-config/peerOrganizations/org2.example.com/ca/:/etc/hyperledger/fabric-ca-server-config
+    privileged: true
     container_name: ca_peerOrg2
 
   orderer.example.com:
@@ -62,7 +63,7 @@ services:
         - ./channel/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/:/etc/hyperledger/crypto/orderer
         - ./channel/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/:/etc/hyperledger/crypto/peerOrg1
         - ./channel/crypto-config/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/:/etc/hyperledger/crypto/peerOrg2
-
+    privileged: true
   peer0.org1.example.com:
     container_name: peer0.org1.example.com
     extends:
@@ -77,6 +78,7 @@ services:
       - 7053:7053
     volumes:
         - ./channel/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/:/etc/hyperledger/crypto/peer
+    privileged: true
     depends_on:
       - orderer.example.com
 
@@ -94,6 +96,7 @@ services:
       - 7058:7053
     volumes:
         - ./channel/crypto-config/peerOrganizations/org1.example.com/peers/peer1.org1.example.com/:/etc/hyperledger/crypto/peer
+    privileged: true
     depends_on:
       - orderer.example.com
 
@@ -111,6 +114,7 @@ services:
       - 8053:7053
     volumes:
         - ./channel/crypto-config/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/:/etc/hyperledger/crypto/peer
+    privileged: true
     depends_on:
       - orderer.example.com
 
@@ -128,5 +132,6 @@ services:
       - 8058:7053
     volumes:
         - ./channel/crypto-config/peerOrganizations/org2.example.com/peers/peer1.org2.example.com/:/etc/hyperledger/crypto/peer
+    privileged: true
     depends_on:
       - orderer.example.com
