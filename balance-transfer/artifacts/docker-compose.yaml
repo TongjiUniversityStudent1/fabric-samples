@@ -21,6 +21,7 @@ services:
     command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
     volumes:
       - ./channel/crypto-config/peerOrganizations/org1.example.com/ca/:/etc/hyperledger/fabric-ca-server-config
+    privileged: true
     container_name: ca_peerOrg1
 
   ca.org2.example.com:
