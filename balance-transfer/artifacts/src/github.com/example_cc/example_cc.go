@@ -16,188 +16,176 @@ limitations under the License.
 
 package main
 
+//慈善智能合约
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
-	"strconv"
-
 	"github.com/hyperledger/fabric/core/chaincode/shim"
-	pb "github.com/hyperledger/fabric/protos/peer"
+	//"strings"
 )
-
-var logger = shim.NewLogger("example_cc0")
 
 // SimpleChaincode example simple Chaincode implementation
 type SimpleChaincode struct {
 }
 
-func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface) pb.Response  {
-	logger.Info("########### example_cc0 Init ###########")
-
-	_, args := stub.GetFunctionAndParameters()
-	var A, B string    // Entities
-	var Aval, Bval int // Asset holdings
-	var err error
-
-	// Initialize the chaincode
-	A = args[0]
-	Aval, err = strconv.Atoi(args[1])
-	if err != nil {
-		return shim.Error("Expecting integer value for asset holding")
-	}
-	B = args[2]
-	Bval, err = strconv.Atoi(args[3])
-	if err != nil {
-		return shim.Error("Expecting integer value for asset holding")
-	}
-	logger.Info("Aval = %d, Bval = %d\n", Aval, Bval)
-
-	// Write the state to the ledger
-	err = stub.PutState(A, []byte(strconv.Itoa(Aval)))
-	if err != nil {
-		return shim.Error(err.Error())
-	}
-
-	err = stub.PutState(B, []byte(strconv.Itoa(Bval)))
-	if err != nil {
-		return shim.Error(err.Error())
-	}
-
-	return shim.Success(nil)
-
-
+//新增走访记录信息
+//type Ncharity struct{
+//CharityHash string
+//VisitInf Visit
+//}
+//走访机构信息
+type Visit struct {
+	Organization string `json:"Organization"` //慈善机构名称
+	Result       string `json:"Result"`       //走访结果
+	VTime        string `json:"VTime"`        //走访时间
+	Comment      string `json:"Comment"`      //备注
 }
 
-// Transaction makes payment of X units from A to B
-func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
-	logger.Info("########### example_cc0 Invoke ###########")
-
-	function, args := stub.GetFunctionAndParameters()
-	
-	if function == "delete" {
-		// Deletes an entity from its state
-		return t.delete(stub, args)
-	}
-
-	if function == "query" {
-		// queries an entity state
-		return t.query(stub, args)
-	}
-	if function == "move" {
-		// Deletes an entity from its state
-		return t.move(stub, args)
-	}
-
-	logger.Errorf("Unknown action, check the first argument, must be one of 'delete', 'query', or 'move'. But got: %v", args[0])
-	return shim.Error(fmt.Sprintf("Unknown action, check the first argument, must be one of 'delete', 'query', or 'move'. But got: %v", args[0]))
+//捐助情况
+type Sum struct {
+	SOrganization string `json:"SOrganization"`
+	Money         string `json:"Money"`
+	Reason        string `json:"Reason"`
+	STime         string `json:"STime"`
 }
 
-func (t *SimpleChaincode) move(stub shim.ChaincodeStubInterface, args []string) pb.Response {
-	// must be an invoke
-	var A, B string    // Entities
-	var Aval, Bval int // Asset holdings
-	var X int          // Transaction value
-	var err error
+//慈善信息结构
+type ChariInf struct {
+	CharityHash string  `json:"CharityHash"` //所有信息的hash
+	Name        string  `json:"Name"`        //姓名
+	//TotalSum    string  `json:"TotalSum"`    //慈善捐助总金额
+	VisitInf    []Visit `json:"VisitInf"`    //走访信息
+	ChSum       []Sum   `json:"ChSum"`       //慈善机构捐助具体信息
+}
 
+//输入参数：“init”，two function:add,update.[0]是操作人员ID
+func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
+
+	if len(args) != 1 {
+		return nil, errors.New("Incorrect number of arguments. Expecting 2")
+	}
+	return nil, nil
+}
+
+//输入参数：function：“add(或update)”，[0]是接受慈善帮助人员的ID，[1]是json格式，[2]是操作人ID
+func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 	if len(args) != 3 {
-		return shim.Error("Incorrect number of arguments. Expecting 4, function followed by 2 names and 1 value")
+		return nil, errors.New("Incorrect number of arguments. ")
 	}
-
-	A = args[0]
-	B = args[1]
-
-	// Get the state from the ledger
-	// TODO: will be nice to have a GetAllState call to ledger
-	Avalbytes, err := stub.GetState(A)
-	if err != nil {
-		return shim.Error("Failed to get state")
-	}
-	if Avalbytes == nil {
-		return shim.Error("Entity not found")
-	}
-	Aval, _ = strconv.Atoi(string(Avalbytes))
-
-	Bvalbytes, err := stub.GetState(B)
-	if err != nil {
-		return shim.Error("Failed to get state")
-	}
-	if Bvalbytes == nil {
-		return shim.Error("Entity not found")
-	}
-	Bval, _ = strconv.Atoi(string(Bvalbytes))
-
+	IdentID := args[0]
+	Hashval := args[1]
+	//Hashval = strings.Replace(Hashval, "\\", "", -1)
+	// Hashval := string(args[1])
+	var chariInf ChariInf
+	var visitInf Visit //输入的参数是[1]:{"Organization": "慈善机构", "Result": "捐助","VTime":"2017-01-05","Comment":"无"}
+	var err error
 	// Perform the execution
-	X, err = strconv.Atoi(args[2])
-	if err != nil {
-		return shim.Error("Invalid transaction amount, expecting a integer value")
-	}
-	Aval = Aval - X
-	Bval = Bval + X
-	logger.Infof("Aval = %d, Bval = %d\n", Aval, Bval)
 
 	// Write the state back to the ledger
-	err = stub.PutState(A, []byte(strconv.Itoa(Aval)))
-	if err != nil {
-		return shim.Error(err.Error())
+	if function == "add" {
+		// Perform the execution
+		TempHashval, err := stub.GetState(IdentID)
+
+		if TempHashval != nil {
+			return nil, errors.New("This ID already exists")
+		}
+		// Write the state back to the ledger
+		err = stub.PutState(IdentID, []byte(Hashval))
+		if err != nil {
+			return []byte(Hashval), err
+		}
+	}
+	//更新信息
+	if function == "update" {
+		HashvalTemp, errs := stub.GetState(IdentID)
+
+		if errs != nil {
+			return nil, errors.New("list is not here")
+		}
+		if HashvalTemp == nil {
+			return nil, errors.New("Entity not found")
+		}
+
+		err = stub.PutState(IdentID, []byte(Hashval))
+		if err != nil {
+			return nil, err
+		}
+	}
+	//新增走访记录
+	if function == "addVisit" {
+		HashvalTemp, err := stub.GetState(IdentID)
+
+		if err != nil {
+			return nil, errors.New("list is not here")
+		}
+		if HashvalTemp == nil {
+			return nil, errors.New("Entity not found")
+		}
+
+		// charT := Visit{
+		// 	Organization: "china",    //慈善机构名称
+		// 	Result:       "help",     //走访结果
+		// 	VTime:        "20170101", //走访时间
+		// 	Comment:      "no",       //备注
+		// }
+
+		json.Unmarshal(HashvalTemp, &chariInf)
+		json.Unmarshal([]byte(Hashval), &visitInf)
+
+		//修改哈希
+
+		//chariInf.CharityHash = visitInf.CharityHash
+		//新增走访记录
+		chariInf.VisitInf = append(chariInf.VisitInf, visitInf)
+
+		jsonchari, _ := json.Marshal(chariInf)
+		err = stub.PutState(IdentID, []byte(jsonchari))
+		if err != nil {
+			return jsonchari, err
+		}
 	}
 
-	err = stub.PutState(B, []byte(strconv.Itoa(Bval)))
-	if err != nil {
-		return shim.Error(err.Error())
-	}
+	return nil, nil
 
-        return shim.Success(nil);
 }
 
-// Deletes an entity from state
-func (t *SimpleChaincode) delete(stub shim.ChaincodeStubInterface, args []string) pb.Response {
-	if len(args) != 1 {
-		return shim.Error("Incorrect number of arguments. Expecting 1")
+// 查询，输入参数:[0]是接受慈善对象的身份证号
+func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
+	if function != "query" {
+		return nil, errors.New("Invalid query function name. Expecting \"query\"")
 	}
-
-	A := args[0]
-
-	// Delete the key from the state in ledger
-	err := stub.DelState(A)
-	if err != nil {
-		return shim.Error("Failed to delete state")
-	}
-
-	return shim.Success(nil)
-}
-
-// Query callback representing the query of a chaincode
-func (t *SimpleChaincode) query(stub shim.ChaincodeStubInterface, args []string) pb.Response {
-
-	var A string // Entities
+	var IdentID string // Entities
 	var err error
 
 	if len(args) != 1 {
-		return shim.Error("Incorrect number of arguments. Expecting name of the person to query")
+		return nil, errors.New("Incorrect number of arguments. Expecting name of the person to query")
 	}
 
-	A = args[0]
+	IdentID = args[0]
 
 	// Get the state from the ledger
-	Avalbytes, err := stub.GetState(A)
+	Hashval, err := stub.GetState(IdentID)
 	if err != nil {
-		jsonResp := "{\"Error\":\"Failed to get state for " + A + "\"}"
-		return shim.Error(jsonResp)
+		jsonResp := "{\"Error\":\"Failed to get state for " + IdentID + "\"}"
+		return nil, errors.New(jsonResp)
 	}
 
-	if Avalbytes == nil {
-		jsonResp := "{\"Error\":\"Nil amount for " + A + "\"}"
-		return shim.Error(jsonResp)
+	if Hashval == nil {
+		jsonResp := "{\"Error\":\"Nil amount for " + IdentID + "\"}"
+		return nil, errors.New(jsonResp)
 	}
 
-	jsonResp := "{\"Name\":\"" + A + "\",\"Amount\":\"" + string(Avalbytes) + "\"}"
-	logger.Infof("Query Response:%s\n", jsonResp)
-	return shim.Success(Avalbytes)
+	jsonResp := "{\"Name\":\"" + IdentID + "\",\"Amount\":\"" + string(Hashval) + "\"}"
+	fmt.Printf("Query Response:%s\n", jsonResp)
+	return Hashval, nil
 }
 
 func main() {
 	err := shim.Start(new(SimpleChaincode))
 	if err != nil {
-		logger.Errorf("Error starting Simple chaincode: %s", err)
+		fmt.Printf("Error starting Simple chaincode: %s", err)
 	}
 }
+
