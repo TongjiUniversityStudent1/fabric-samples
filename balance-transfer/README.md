@@ -69,7 +69,7 @@ With the application started in terminal 1, next, test the APIs by executing the
 ```
 cd fabric-sdk-node/examples/balance-transfer
 
-./testAPIs.sh
+./charityTest.sh
 
 ```
 
